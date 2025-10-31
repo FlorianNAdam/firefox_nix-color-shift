@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Nix Color Shift",
+  "name": "NixColorShift",
   "version": "1.0",
   "description": "Recolor greyscale elements",
   "permissions": [
@@ -26,5 +26,10 @@
         "<all_urls>"
       ]
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "test@example.com"
+    }
+  }
 }
