@@ -12,7 +12,7 @@
 
   const rangeExtension = 0.2;
 
-  Extend darkest/lightest colors
+  // Extend darkest/lightest colors
   const darkColor = targetPalette[0];
   const darkerDark = darkenHex(darkColor, rangeExtension);
   targetPalette.unshift(darkerDark);
