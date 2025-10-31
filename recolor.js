@@ -88,7 +88,7 @@
     return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
   }
 
-  function isGrey({ r, g, b }, tolerance = 10) {
+  function isGrey({ r, g, b }, tolerance = 20) {
     return Math.abs(r - g) <= tolerance && Math.abs(r - b) <= tolerance && Math.abs(g - b) <= tolerance;
   }
 
