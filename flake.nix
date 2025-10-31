@@ -32,8 +32,12 @@
             dst="$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
             mkdir -p "$dst"
 
-            echo '${palette-str}' > "palette.json"
+            cp -r "$src" ".build"
+            chmod -R u+w ".build"
 
+            echo '${palette-str}' > ".build/palette.json"
+
+            cd .build
             zip -r "$dst/${addonId}.xpi" *
           '';
 
@@ -48,10 +52,10 @@
           palette = [
             "#282828"
             "#3c3836"
-            # "#504945"
-            # "#665c54"
-            # "#bdae93"
-            # "#d5c4a1"
+            "#504945"
+            "#665c54"
+            "#bdae93"
+            "#d5c4a1"
             "#ebdbb2"
             "#fbf1c7"
           ];
