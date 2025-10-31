@@ -3,10 +3,10 @@
   // --- Load palette.json ---
   let targetPalette = [];
   try {
-    const response = await fetch(chrome.runtime.getURL('palette.json'));
+    const response = await fetch(chrome.runtime.getURL("palette.json"));
     targetPalette = await response.json();
   } catch (err) {
-    console.error('Failed to load palette.json:', err);
+    console.error("Failed to load palette.json:", err);
     targetPalette = [
       "#282828",
       "#3c3836",
@@ -15,8 +15,8 @@
       "#bdae93",
       "#d5c4a1",
       "#ebdbb2",
-      "#fbf1c7"
-    ]
+      "#fbf1c7",
+    ];
   }
 
   const rangeExtension = 0.2;
@@ -31,26 +31,27 @@
   targetPalette.push(lighterLight);
 
   // --- HELPER FUNCTIONS ---
-  const colorAttrs = ['backgroundColor', 'color', 'borderColor'];
+  const colorAttrs = ["backgroundColor", "color", "borderColor"];
 
   function toCSSProp(camelCase) {
-    return camelCase.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+    return camelCase.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
   }
 
   function hexToRgb(hex) {
-    hex = hex.replace(/^#/, '');
-    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    hex = hex.replace(/^#/, "");
+    if (hex.length === 3)
+      hex = hex
+        .split("")
+        .map((c) => c + c)
+        .join("");
     const int = parseInt(hex, 16);
     return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
   }
 
   function rgbToHex(r, g, b) {
     return (
-      '#' +
-      ((1 << 24) + (r << 16) + (g << 8) + b)
-        .toString(16)
-        .slice(1)
-        .toUpperCase()
+      "#" +
+      ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()
     );
   }
 
@@ -59,7 +60,7 @@
     return rgbToHex(
       Math.min(255, Math.round(r + (255 - r) * amount)),
       Math.min(255, Math.round(g + (255 - g) * amount)),
-      Math.min(255, Math.round(b + (255 - b) * amount))
+      Math.min(255, Math.round(b + (255 - b) * amount)),
     );
   }
 
@@ -68,7 +69,7 @@
     return rgbToHex(
       Math.max(0, Math.round(r * (1 - amount))),
       Math.max(0, Math.round(g * (1 - amount))),
-      Math.max(0, Math.round(b * (1 - amount)))
+      Math.max(0, Math.round(b * (1 - amount))),
     );
   }
 
@@ -77,7 +78,7 @@
     if (!match) return null;
     const [_, r, g, b] = match;
     return (
-      '#' +
+      "#" +
       ((1 << 24) + (parseInt(r) << 16) + (parseInt(g) << 8) + parseInt(b))
         .toString(16)
         .slice(1)
@@ -86,7 +87,7 @@
   }
 
   function luminance({ r, g, b }) {
-    const a = [r, g, b].map(v => {
+    const a = [r, g, b].map((v) => {
       v /= 255;
       return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
     });
@@ -119,7 +120,7 @@
   function getMinMaxLuminance(colors) {
     let minLum = Infinity;
     let maxLum = -Infinity;
-    colors.forEach(c => {
+    colors.forEach((c) => {
       const lum = luminance(hexToRgb(c));
       if (lum < minLum) minLum = lum;
       if (lum > maxLum) maxLum = lum;
@@ -129,13 +130,13 @@
 
   function mapGreyscaleToTarget(colors) {
     const { minLum, maxLum } = getMinMaxLuminance(colors);
-    const targetLums = targetPalette.map(c => luminance(hexToRgb(c)));
+    const targetLums = targetPalette.map((c) => luminance(hexToRgb(c)));
     const targetMin = Math.min(...targetLums);
     const targetMax = Math.max(...targetLums);
 
     const mapping = {};
 
-    colors.forEach(c => {
+    colors.forEach((c) => {
       const lum = luminance(hexToRgb(c));
       const relative = (lum - minLum) / (maxLum - minLum || 1);
       const mappedLum = targetMin + relative * (targetMax - targetMin);
@@ -149,7 +150,7 @@
       targetMin,
       targetMax,
       extendMapping(newColors) {
-        newColors.forEach(c => {
+        newColors.forEach((c) => {
           if (!mapping[c]) {
             const lum = luminance(hexToRgb(c));
             const relative = (lum - minLum) / (maxLum - minLum || 1);
@@ -166,20 +167,24 @@
     let replacement = mapData.mapping[hex];
     if (!replacement) {
       const lum = luminance(hexToRgb(hex));
-      const relative = (lum - mapData.minLum) / (mapData.maxLum - mapData.minLum || 1);
-      const mappedLum = mapData.targetMin + relative * (mapData.targetMax - mapData.minLum || 1); // safe fallback
-      const mappedLumCorrected = mapData.targetMin + relative * (mapData.targetMax - mapData.targetMin);
+      const relative =
+        (lum - mapData.minLum) / (mapData.maxLum - mapData.minLum || 1);
+      const mappedLum =
+        mapData.targetMin +
+        relative * (mapData.targetMax - mapData.minLum || 1); // safe fallback
+      const mappedLumCorrected =
+        mapData.targetMin + relative * (mapData.targetMax - mapData.targetMin);
       replacement = findClosestColorByLuminance(mappedLumCorrected);
       mapData.mapping[hex] = replacement;
     }
-    el.style.setProperty(toCSSProp(prop), replacement, 'important');
+    el.style.setProperty(toCSSProp(prop), replacement, "important");
   }
 
   function recolorElement(el, mapData) {
     const style = window.getComputedStyle(el);
-    colorAttrs.forEach(prop => {
+    colorAttrs.forEach((prop) => {
       const value = style[prop];
-      if (value && value.startsWith('rgb')) {
+      if (value && value.startsWith("rgb")) {
         const hex = rgbStringToHex(value);
         if (hex && isGrey(hexToRgb(hex))) {
           applyRecolor(el, prop, hex, mapData);
@@ -195,18 +200,18 @@
   }
 
   // --- INITIAL RUN ---
-  const allEls = document.querySelectorAll('*');
+  const allEls = document.querySelectorAll("*");
   const greyColors = new Set();
   const recolorCandidates = [];
 
   const t1 = performance.now();
-  
-  allEls.forEach(el => {
+
+  allEls.forEach((el) => {
     if (!isVisible(el)) return;
     const style = window.getComputedStyle(el);
-    colorAttrs.forEach(prop => {
+    colorAttrs.forEach((prop) => {
       const value = style[prop];
-      if (value && value.startsWith('rgb')) {
+      if (value && value.startsWith("rgb")) {
         const hex = rgbStringToHex(value);
         if (hex && isGrey(hexToRgb(hex))) {
           greyColors.add(hex);
@@ -231,18 +236,23 @@
   const t4 = performance.now();
   console.log(`Initial recolor took ${(t4 - t3).toFixed(2)} ms`);
 
-  const observer = new MutationObserver(mutations => {
+  const observer = new MutationObserver((mutations) => {
     const t1 = performance.now();
 
     for (const m of mutations) {
-      if (m.type === 'childList') {
-        m.addedNodes.forEach(node => {
+      if (m.type === "childList") {
+        m.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             recolorElement(node, mapData);
-            node.querySelectorAll('*').forEach(child => recolorElement(child, mapData));
+            node
+              .querySelectorAll("*")
+              .forEach((child) => recolorElement(child, mapData));
           }
         });
-      } else if (m.type === 'attributes' && colorAttrs.includes(m.attributeName)) {
+      } else if (
+        m.type === "attributes" &&
+        colorAttrs.includes(m.attributeName)
+      ) {
         recolorElement(m.target, mapData);
       }
     }
