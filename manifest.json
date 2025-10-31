@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Nix Color Shift",
+  "version": "1.0",
+  "description": "Recolor greyscale elements",
+  "permissions": [
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "recolor.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "palette.json"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
