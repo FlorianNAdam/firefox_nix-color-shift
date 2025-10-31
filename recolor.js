@@ -27,6 +27,10 @@
     'color',
     'borderColor'
   ];
+
+  function toCSSProp(camelCase) {
+    return camelCase.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+  }
   
   function hexToRgb(hex) {
     hex = hex.replace(/^#/, '');
@@ -157,7 +161,8 @@
         if (value && value.startsWith('rgb')) {
           const hex = rgbStringToHex(value);
           if (hex && mapping[hex]) {
-             el.style.setProperty(prop, mapping[hex], 'important');
+            const cssProp = toCSSProp(prop);
+            el.style.setProperty(cssProp, mapping[hex], 'important');
           }
         }
       });
