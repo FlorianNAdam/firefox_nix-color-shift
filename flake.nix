@@ -15,7 +15,7 @@
       manifest = builtins.fromJSON (builtins.readFile "${src}/manifest.json");
 
       version = manifest.version;
-      addonId = "nix-color-shift@example.com";
+      addonId = manifest.browser_specific_settings.gecko.id;
 
       nix-color-shift = pkgs.stdenv.mkDerivation {
         name = "${pname}-${version}";

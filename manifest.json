@@ -29,7 +29,7 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "test@example.com"
+      "id": "nix-color-shift@example.com"
     }
   }
 }
