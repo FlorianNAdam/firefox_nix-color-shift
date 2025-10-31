@@ -17,33 +17,45 @@
       version = manifest.version;
       addonId = manifest.browser_specific_settings.gecko.id;
 
-      nix-color-shift = pkgs.stdenv.mkDerivation {
-        name = "${pname}-${version}";
-        inherit src;
+      nix-color-shift =
+        { pkgs, palette }:
+        let
+          palette-str = builtins.toJSON palette;
+        in
+        pkgs.stdenv.mkDerivation {
+          name = "${pname}-${version}";
+          inherit src;
 
-        buildInputs = [ pkgs.zip ];
+          buildInputs = [ pkgs.zip ];
 
-        # We don't need sha256 for local build; purity is preserved
-        buildCommand = ''
-          dst="$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
-          mkdir -p "$dst"
+          buildCommand = ''
+            dst="$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
+            mkdir -p "$dst"
 
-          # If src is a folder, zip it; if already a .xpi, just copy
-          if [ -d "$src" ]; then
-            cd $src
+            echo '${palette-str}' > "palette.json"
+
             zip -r "$dst/${addonId}.xpi" *
-          else
-            cp "$src" "$dst/${addonId}.xpi"
-          fi
-        '';
+          '';
 
-        passthru = { inherit addonId; };
-      };
+          passthru = { inherit addonId; };
+        };
     in
     {
       packages.${system} = {
         inherit nix-color-shift;
-        default = nix-color-shift;
+        default = nix-color-shift {
+          inherit pkgs;
+          palette = [
+            "#282828"
+            "#3c3836"
+            # "#504945"
+            # "#665c54"
+            # "#bdae93"
+            # "#d5c4a1"
+            "#ebdbb2"
+            "#fbf1c7"
+          ];
+        };
       };
     };
 }
