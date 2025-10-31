@@ -22,6 +22,12 @@
   targetPalette.push(lighterLight);
 
   // --- HELPER FUNCTIONS ---
+  const colorAttrs =  [
+    'backgroundColor',
+    'color',
+    'borderColor'
+  ];
+  
   function hexToRgb(hex) {
     hex = hex.replace(/^#/, '');
     if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
@@ -104,7 +110,7 @@
 
     elements.forEach(el => {
       const style = window.getComputedStyle(el);
-      ['backgroundColor', 'color', 'borderColor'].forEach(prop => {
+      colorAttrs.forEach(prop => {
         const value = style[prop];
         if (value && value.startsWith('rgb')) {
           const hex = rgbStringToHex(value);
@@ -146,11 +152,13 @@
     const elements = document.querySelectorAll('*');
     elements.forEach(el => {
       const style = window.getComputedStyle(el);
-      ['backgroundColor', 'color', 'borderColor'].forEach(prop => {
+      colorAttrs.forEach(prop => {
         const value = style[prop];
         if (value && value.startsWith('rgb')) {
           const hex = rgbStringToHex(value);
-          if (hex && mapping[hex]) el.style[prop] = mapping[hex];
+          if (hex && mapping[hex]) {
+             el.style.setProperty(prop, mapping[hex], 'important');
+          }
         }
       });
     });
