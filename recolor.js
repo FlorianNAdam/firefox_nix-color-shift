@@ -310,25 +310,34 @@ function isPageDark(step = 100) {
   const observer = new MutationObserver((mutations) => {
     const t1 = performance.now();
 
+    const elementsToRecolor = new Set();
+
     for (const m of mutations) {
       if (m.type === "childList") {
         m.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            recolorElement(node, mapData);
-            node
-              .querySelectorAll("*")
-              .forEach((child) => recolorElement(child, mapData));
+            elementsToRecolor.add(node);
+            node.querySelectorAll("*").forEach((child) => {
+              if (child.nodeType === Node.ELEMENT_NODE) elementsToRecolor.add(child);
+            });
           }
         });
       } else if (m.type === "attributes") {
         if (observerAttrs.includes(m.attributeName)) {
-          recolorElement(m.target, mapData);
+          elementsToRecolor.add(m.target);
+          m.target.querySelectorAll("*").forEach((child) => {
+            if (child.nodeType === Node.ELEMENT_NODE) elementsToRecolor.add(child);
+          });
         }
       }
     }
 
+    elementsToRecolor.forEach((el) => {
+      if (isVisible(el)) recolorElement(el, mapData);
+    });
+
     const t2 = performance.now();
-    console.log(`Mutation recolor took ${(t2 - t1).toFixed(2)} ms`);
+    console.log(`Batch mutation recolor took ${(t2 - t1).toFixed(2)} ms`);
   });
 
   observer.observe(document.body, {
