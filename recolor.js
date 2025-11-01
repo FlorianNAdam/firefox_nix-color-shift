@@ -1,4 +1,74 @@
 // recolor.js
+function parseColor(colorStr) {
+  const rgba = colorStr.match(/rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)/);
+  if (!rgba) return { r: 255, g: 255, b: 255, a: 1 }; // fallback white
+  return {
+    r: parseInt(rgba[1]),
+    g: parseInt(rgba[2]),
+    b: parseInt(rgba[3]),
+    a: rgba[4] !== undefined ? parseFloat(rgba[4]) : 1,
+  };
+}
+
+function blendColors(top, bottom) {
+  const alpha = top.a + bottom.a * (1 - top.a);
+  if (alpha === 0) return { r: 0, g: 0, b: 0, a: 0 };
+  return {
+    r: Math.round((top.r * top.a + bottom.r * bottom.a * (1 - top.a)) / alpha),
+    g: Math.round((top.g * top.a + bottom.g * bottom.a * (1 - top.a)) / alpha),
+    b: Math.round((top.b * top.a + bottom.b * bottom.a * (1 - top.a)) / alpha),
+    a: alpha,
+  };
+}
+
+function getFinalColor(el) {
+  if (!el) return { r: 255, g: 255, b: 255, a: 1 }; // fallback white
+  const style = window.getComputedStyle(el);
+  const color = parseColor(style.backgroundColor);
+
+  if (color.a === 1) return color; // fully opaque
+  if (color.a === 0) return getFinalColor(el.parentElement); // fully transparent
+
+  // partially transparent → blend with parent
+  const parentColor = getFinalColor(el.parentElement);
+  return blendColors(color, parentColor);
+}
+
+const colorCache = new WeakMap();
+function getColorAt(x, y) {
+  const element = document.elementFromPoint(x, y);
+  if (colorCache.has(element)) {
+    return colorCache.get(element);
+  }
+  const color = getFinalColor(element);
+  colorCache.set(element, color);
+  return color;
+}
+
+function isPageDark(step = 100) {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const brightnessValues = [];
+
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
+      const color = getColorAt(x, y);
+
+      const brightness = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+      brightnessValues.push(brightness);
+    }
+  }
+
+  brightnessValues.sort((a, b) => a - b);
+  const mid = Math.floor(brightnessValues.length / 2);
+  const medianBrightness =
+    brightnessValues.length % 2 === 0
+      ? (brightnessValues[mid - 1] + brightnessValues[mid]) / 2
+      : brightnessValues[mid];
+
+  return medianBrightness < 128;
+}
+
 (async () => {
   // --- Load palette.json ---
   let targetPalette = [];
@@ -236,6 +306,7 @@
   const t4 = performance.now();
   console.log(`Initial recolor took ${(t4 - t3).toFixed(2)} ms`);
 
+  const observerAttrs = ["style", "class", ...colorAttrs.map(toCSSProp)];
   const observer = new MutationObserver((mutations) => {
     const t1 = performance.now();
 
@@ -249,11 +320,10 @@
               .forEach((child) => recolorElement(child, mapData));
           }
         });
-      } else if (
-        m.type === "attributes" &&
-        colorAttrs.includes(m.attributeName)
-      ) {
-        recolorElement(m.target, mapData);
+      } else if (m.type === "attributes") {
+        if (observerAttrs.includes(m.attributeName)) {
+          recolorElement(m.target, mapData);
+        }
       }
     }
 
@@ -265,6 +335,6 @@
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: colorAttrs.map(toCSSProp),
+    attributeFilter: observerAttrs,
   });
 })();
