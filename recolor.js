@@ -69,6 +69,10 @@ function isPageDark(step = 100) {
   return medianBrightness < 128;
 }
 
+function generateRandomId(length = 6) {
+  return Math.random().toString(36).substr(2, length).toUpperCase();
+}
+
 (async () => {
   // --- Load palette.json ---
   let targetPalette = [];
@@ -292,52 +296,74 @@ function isPageDark(step = 100) {
   });
 
   const t2 = performance.now();
-  console.log(`Grey extraction took ${(t2 - t1).toFixed(2)} ms`);
+  console.log(`>>> Grey extraction took ${(t2 - t1).toFixed(2)} ms`);
 
   const mapData = mapGreyscaleToTarget(Array.from(greyColors));
 
   const t3 = performance.now();
-  console.log(`Initial mapping took ${(t3 - t2).toFixed(2)} ms`);
+  console.log(`>>> Initial mapping took ${(t3 - t2).toFixed(2)} ms`);
 
   recolorCandidates.forEach(({ el, prop, hex }) => {
     applyRecolor(el, prop, hex, mapData);
   });
 
   const t4 = performance.now();
-  console.log(`Initial recolor took ${(t4 - t3).toFixed(2)} ms`);
+  console.log(`>>> Initial recolor took ${(t4 - t3).toFixed(2)} ms`);
 
   const observerAttrs = ["style", "class", ...colorAttrs.map(toCSSProp)];
   const observer = new MutationObserver((mutations) => {
+    const batchId = generateRandomId();
+
     const t1 = performance.now();
 
-    const elementsToRecolor = new Set();
+    console.log(`Mutation [${batchId}] >>> length:`, mutations.length);
 
+    const rootCandidates = new Set();
     for (const m of mutations) {
       if (m.type === "childList") {
+        console.log(`Mutation [${batchId}] >>> type: childList`);
         m.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            elementsToRecolor.add(node);
-            node.querySelectorAll("*").forEach((child) => {
-              if (child.nodeType === Node.ELEMENT_NODE) elementsToRecolor.add(child);
-            });
+            rootCandidates.add(node);
           }
         });
       } else if (m.type === "attributes") {
+        console.log(`Mutation [${batchId}] >>> type: attributes`);
         if (observerAttrs.includes(m.attributeName)) {
-          elementsToRecolor.add(m.target);
-          m.target.querySelectorAll("*").forEach((child) => {
-            if (child.nodeType === Node.ELEMENT_NODE) elementsToRecolor.add(child);
-          });
+          rootCandidates.add(m.target);
         }
       }
     }
+
+    const elementsToRecolor = new Set();
+    for (const elem of rootCandidates) {
+      if (!elementsToRecolor.has(elem)) {
+        elem.querySelectorAll("*").forEach((child) => {
+          if (child.nodeType === Node.ELEMENT_NODE)
+            elementsToRecolor.add(child);
+        });
+        elementsToRecolor.add(elem);
+      }
+    }
+
+    const t2 = performance.now();
+    console.log(
+      `Mutation [${batchId}] >>> Batch mutation collection took ${(t2 - t1).toFixed(2)} ms`,
+    );
+
+    console.log(
+      `Mutation [${batchId}] >>> total elements:`,
+      elementsToRecolor.size,
+    );
 
     elementsToRecolor.forEach((el) => {
       if (isVisible(el)) recolorElement(el, mapData);
     });
 
-    const t2 = performance.now();
-    console.log(`Batch mutation recolor took ${(t2 - t1).toFixed(2)} ms`);
+    const t3 = performance.now();
+    console.log(
+      `Mutation [${batchId}] >>> Batch mutation recolor took ${(t3 - t2).toFixed(2)} ms`,
+    );
   });
 
   observer.observe(document.body, {
@@ -345,5 +371,24 @@ function isPageDark(step = 100) {
     subtree: true,
     attributes: true,
     attributeFilter: observerAttrs,
+  });
+
+  document.querySelectorAll("link[rel=stylesheet]").forEach((link) => {
+    link.addEventListener("load", () => {
+      const batchId = generateRandomId();
+      console.log(`CSSLoad [${batchId}] >>> CSS loaded:`, link.href);
+      const t1 = performance.now();
+
+      const elementsToRecolor = new Set();
+      document.querySelectorAll("*").forEach((el) => {
+        if (isVisible(el)) elementsToRecolor.add(el);
+      });
+      elementsToRecolor.forEach((el) => recolorElement(el, mapData));
+
+      const t2 = performance.now();
+      console.log(
+        `CSSLoad  [${batchId}] >>> CSS full recolor took ${(t2 - t1).toFixed(2)} ms`,
+      );
+    });
   });
 })();
