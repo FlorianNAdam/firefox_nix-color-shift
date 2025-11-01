@@ -335,8 +335,29 @@ function generateRandomId(length = 6) {
       }
     }
 
+    console.log(
+      `Mutation [${batchId}] >>> root elements:`,
+      rootCandidates.size,
+    );
+
+    const t2 = performance.now();
+    console.log(
+      `Mutation [${batchId}] >>> Batch root collection took ${(t2 - t1).toFixed(2)} ms`,
+    );
+
+    const sortedRootCandidates = Array.from(rootCandidates).sort((a, b) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_CONTAINED_BY
+        ? -1
+        : 1,
+    );
+
+    const t3 = performance.now();
+    console.log(
+      `Mutation [${batchId}] >>> root sorting took ${(t3 - t2).toFixed(2)} ms`,
+    );
+
     const elementsToRecolor = new Set();
-    for (const elem of rootCandidates) {
+    for (const elem of sortedRootCandidates) {
       if (!elementsToRecolor.has(elem)) {
         elem.querySelectorAll("*").forEach((child) => {
           if (child.nodeType === Node.ELEMENT_NODE)
@@ -346,9 +367,9 @@ function generateRandomId(length = 6) {
       }
     }
 
-    const t2 = performance.now();
+    const t4 = performance.now();
     console.log(
-      `Mutation [${batchId}] >>> Batch mutation collection took ${(t2 - t1).toFixed(2)} ms`,
+      `Mutation [${batchId}] >>> Batch mutation collection took ${(t4 - t3).toFixed(2)} ms`,
     );
 
     console.log(
@@ -360,9 +381,9 @@ function generateRandomId(length = 6) {
       if (isVisible(el)) recolorElement(el, mapData);
     });
 
-    const t3 = performance.now();
+    const t5 = performance.now();
     console.log(
-      `Mutation [${batchId}] >>> Batch mutation recolor took ${(t3 - t2).toFixed(2)} ms`,
+      `Mutation [${batchId}] >>> Batch mutation recolor took ${(t5 - t4).toFixed(2)} ms`,
     );
   });
 
@@ -376,7 +397,7 @@ function generateRandomId(length = 6) {
   document.querySelectorAll("link[rel=stylesheet]").forEach((link) => {
     link.addEventListener("load", () => {
       const batchId = generateRandomId();
-      console.log(`CSSLoad [${batchId}] >>> CSS loaded:`, link.href);
+      console.log(`CSSLoad  [${batchId}] >>> CSS loaded:`, link.href);
       const t1 = performance.now();
 
       const elementsToRecolor = new Set();
