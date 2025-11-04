@@ -342,6 +342,11 @@ async function getPalette() {
   }
 
   // --- INITIAL RUN ---
+  const body = document.body;
+  if (window.getComputedStyle(body)["backgroundColor"] == "rgba(0, 0, 0, 0)") {
+    body.style["backgroundColor"] = "rgb(255, 255, 255)";
+  }
+
   const allEls = document.querySelectorAll("*");
   const greyColors = new Set();
   const recolorCandidates = [];
