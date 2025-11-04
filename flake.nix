@@ -9,7 +9,7 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
 
-      pname = "nix-color-shift";
+      pname = "color-shift";
       src = ./.;
 
       manifest = builtins.fromJSON (builtins.readFile "${src}/manifest.json");
@@ -17,7 +17,7 @@
       version = manifest.version;
       addonId = manifest.browser_specific_settings.gecko.id;
 
-      nix-color-shift = pkgs.stdenv.mkDerivation {
+      color-shift = pkgs.stdenv.mkDerivation {
         name = "${pname}-${version}";
         inherit src;
 
@@ -37,8 +37,8 @@
     in
     {
       packages.${system} = {
-        inherit nix-color-shift;
-        default = nix-color-shift;
+        inherit color-shift;
+        default = color-shift;
       };
     };
 }
