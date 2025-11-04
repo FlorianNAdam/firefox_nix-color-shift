@@ -73,25 +73,104 @@ function generateRandomId(length = 6) {
   return Math.random().toString(36).substr(2, length).toUpperCase();
 }
 
+async function getSettings() {
+  return new Promise((resolve, reject) => {
+    console.log("getSettings: Sending message to background...");
+
+    browser.runtime.sendMessage({ action: "getSettings" }, (response) => {
+      console.log("getSettings: Received response:", response);
+      console.log("getSettings: Last error:", browser.runtime.lastError);
+
+      if (browser.runtime.lastError) {
+        console.error("getSettings: Runtime error:", browser.runtime.lastError);
+        reject(browser.runtime.lastError);
+        return;
+      }
+
+      if (!response) {
+        console.error(
+          "getSettings: No response received - background script may not be loaded",
+        );
+        reject(new Error("No response from background script"));
+        return;
+      }
+
+      if (!response.settings) {
+        console.warn(
+          "getSettings: Response received but no settings property:",
+          response,
+        );
+        resolve({}); // Return empty object as fallback
+        return;
+      }
+
+      console.log("getSettings: Successfully got settings:", response.settings);
+      resolve(response.settings);
+    });
+  });
+}
+
+async function setSettings(settings) {
+  return new Promise((resolve, reject) => {
+    console.log("setSettings: Sending settings to background:", settings);
+
+    browser.runtime.sendMessage(
+      {
+        action: "setSettings",
+        settings: settings,
+      },
+      (response) => {
+        console.log("setSettings: Received response:", response);
+        console.log("setSettings: Last error:", browser.runtime.lastError);
+
+        if (browser.runtime.lastError) {
+          console.error(
+            "setSettings: Runtime error:",
+            browser.runtime.lastError,
+          );
+          reject(browser.runtime.lastError);
+          return;
+        }
+
+        if (!response) {
+          console.error("setSettings: No response received");
+          reject(new Error("No response from background script"));
+          return;
+        }
+
+        console.log("setSettings: Success:", response.success);
+        resolve(response.success || false);
+      },
+    );
+  });
+}
+
+async function getPalette() {
+  const settings = await getSettings();
+
+  if (settings.palette?.length) {
+    return settings.palette;
+  }
+
+  const defaultPalette = [
+    "#282828",
+    "#3c3836",
+    "#504945",
+    "#665c54",
+    "#bdae93",
+    "#d5c4a1",
+    "#ebdbb2",
+    "#fbf1c7",
+  ];
+
+  await setSettings({ palette: defaultPalette });
+  return defaultPalette;
+}
+
 (async () => {
   // --- Load palette.json ---
-  let targetPalette = [];
-  try {
-    const response = await fetch(chrome.runtime.getURL("palette.json"));
-    targetPalette = await response.json();
-  } catch (err) {
-    console.error("Failed to load palette.json:", err);
-    targetPalette = [
-      "#282828",
-      "#3c3836",
-      "#504945",
-      "#665c54",
-      "#bdae93",
-      "#d5c4a1",
-      "#ebdbb2",
-      "#fbf1c7",
-    ];
-  }
+  const targetPalette = await getPalette();
+  console.log("Palette loaded:", targetPalette);
 
   const rangeExtension = 0.2;
 
@@ -212,9 +291,9 @@ function generateRandomId(length = 6) {
 
     colors.forEach((c) => {
       const lum = luminance(hexToRgb(c));
-      const relative = (lum - minLum) / (maxLum - minLum || 1);
-      const mappedLum = targetMin + relative * (targetMax - targetMin);
-      mapping[c] = findClosestColorByLuminance(mappedLum);
+      // const relative = (lum - minLum) / (maxLum - minLum || 1);
+      // const mappedLum = targetMin + relative * (targetMax - targetMin);
+      mapping[c] = findClosestColorByLuminance(lum);
     });
 
     return {
@@ -223,17 +302,6 @@ function generateRandomId(length = 6) {
       maxLum,
       targetMin,
       targetMax,
-      extendMapping(newColors) {
-        newColors.forEach((c) => {
-          if (!mapping[c]) {
-            const lum = luminance(hexToRgb(c));
-            const relative = (lum - minLum) / (maxLum - minLum || 1);
-            const mappedLum = targetMin + relative * (targetMax - targetMin);
-            mapping[c] = findClosestColorByLuminance(mappedLum);
-          }
-        });
-        return mapping;
-      },
     };
   }
 
@@ -241,14 +309,14 @@ function generateRandomId(length = 6) {
     let replacement = mapData.mapping[hex];
     if (!replacement) {
       const lum = luminance(hexToRgb(hex));
-      const relative =
-        (lum - mapData.minLum) / (mapData.maxLum - mapData.minLum || 1);
-      const mappedLum =
-        mapData.targetMin +
-        relative * (mapData.targetMax - mapData.minLum || 1); // safe fallback
-      const mappedLumCorrected =
-        mapData.targetMin + relative * (mapData.targetMax - mapData.targetMin);
-      replacement = findClosestColorByLuminance(mappedLumCorrected);
+      // const relative =
+      //   (lum - mapData.minLum) / (mapData.maxLum - mapData.minLum || 1);
+      // const mappedLum =
+      //   mapData.targetMin +
+      //   relative * (mapData.targetMax - mapData.minLum || 1); // safe fallback
+      // const mappedLumCorrected =
+      //   mapData.targetMin + relative * (mapData.targetMax - mapData.targetMin);
+      replacement = findClosestColorByLuminance(lum);
       mapData.mapping[hex] = replacement;
     }
     el.style.setProperty(toCSSProp(prop), replacement, "important");
