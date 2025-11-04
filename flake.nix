@@ -29,7 +29,7 @@
 
           cd $src
 
-          zip -r "$dst/${addonId}.xpi" *
+          zip -r "$dst/${addonId}.xpi" *.js *.json
         '';
 
         passthru = { inherit addonId; };
