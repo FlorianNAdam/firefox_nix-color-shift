@@ -25,7 +25,12 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "color-shift@example.com"
+      "id": "color-shift@example.com",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
     }
   }
 }
