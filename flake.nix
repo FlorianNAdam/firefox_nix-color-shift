@@ -48,7 +48,7 @@
       version = manifest.version;
       addonId = manifest.browser_specific_settings.gecko.id;
 
-      color-shift = firefox-addons.lib.${pkgs.system}.buildFirefoxXpiAddon {
+      color-shift = firefox-addons.lib.${system}.buildFirefoxXpiAddon {
         pname = name;
         inherit version addonId;
 
